@@ -2,7 +2,10 @@
 
 const char *ssid =  "Cloudwifi-339-904";
 const char *pass =  "";
+const char homebase = "H";
+const char notHomebase = "N";
 bool isConnectedToWifi = false;
+bool atHomebase = false;
 
 WiFiClient client;
 
@@ -14,21 +17,30 @@ void setup() {
 }
 
 void loop() {
-  // TODO: wait for signal from rover_data
-  if (!isConnectedToWifi) {
-    connect_to_wifi();
-    isConnectedToWifi = true;
-  } else {
-    if (Serial.available()) {
-      // this prints to serial monitor
-      Serial.write(Serial.read());
-      
-      // TODO: send data to database instead
-    }
-    
+  // signal that we are at homebase
+  if (Serial.available() && (Serial.read()==homebase)) {
+    atHomebase = true;
   }
 
-  // once rover is away from the homebase, isConnectedToWifi = false
+  // we have left homebase
+  if (Serial.available() && (Serial.read()==notHomebase)) {
+    atHomebase = false;
+    isConnectedToWifi = false;
+  }
+
+  if (atHomebase) {
+    if (!isConnectedToWifi) {
+      connect_to_wifi();
+      isConnectedToWifi = true;
+    } else {
+      if (Serial.available()) {
+        // this prints to serial monitor
+        Serial.write(Serial.read());
+        
+        // TODO: send data to database instead
+      }
+    }
+  }
 }
 
 
