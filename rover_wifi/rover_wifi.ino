@@ -2,8 +2,8 @@
 
 const char *ssid =  "Cloudwifi-339-904";
 const char *pass =  "";
-const char homebase = "H";
-const char notHomebase = "N";
+const char homebase = 'H';
+const char notHomebase = 'N';
 bool isConnectedToWifi = false;
 bool atHomebase = false;
 
