@@ -13,7 +13,7 @@ RTC_DS1307 rtc;
 int eeAddress;
 int count;
 
-int lastHour = 0;
+int lastHour = -1;
 
 void setup() {
   // open serial port, set the baud rate to 9600 bps
@@ -34,6 +34,8 @@ void loop() {
       collectAndStoreSoilData();
     }
   }
+
+  
   
   // TODO: check if bluetooth is in range
   // TODO: call retrieveAndSendSoilData()
@@ -72,10 +74,11 @@ void collectAndStoreSoilData() {
 void retrieveAndSendSoilData() {
   EEPROM.get(ADDR, eeAddress);
   EEPROM.get(COUNT_ADDR, count);
+  Serial.println("RETRIEVED DATA");
 
   for (int i=0; i<count; i++) {
     soil_data retrieved_data;
-    EEPROM.get(eeAddress, retrieved_data);
+    EEPROM.get(eeAddress+(i*sizeof(soil_data)), retrieved_data);
     // TODO: send via serial over bluetooth
   }
 
