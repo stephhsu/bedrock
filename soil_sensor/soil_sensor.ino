@@ -9,6 +9,10 @@
 #define ADDR 0
 #define COUNT_ADDR 2
 
+outputToBt outputData;
+byte btData[6];
+char c = ' ';
+
 RTC_DS1307 rtc;
 int eeAddress;
 int count;
@@ -18,7 +22,11 @@ int lastHour = -1;
 void setup() {
   // open serial port, set the baud rate to 9600 bps
   Serial.begin(9600);
+  Serial.setTimeout(10);
   delay(1000);
+
+  // HC-05 default serial speed for AT mode is 38400
+  Serial1.begin(38400); 
 
   if (!rtc.begin()) {
    Serial.println("Couldn't find RTC");
@@ -35,22 +43,27 @@ void loop() {
     }
   }
 
-  
-  
-  // TODO: check if bluetooth is in range
-  // TODO: call retrieveAndSendSoilData()
+  // data incoming from bluetooth module
+  if (Serial1.available()) {
+    c = Serial1.read();
+    if (c == 'm') {
+      // send response back
+      //Serial1.write("hello!");
+      retrieveAndSendSoilData();
+    }
+  }
 }
 
 void collectAndStoreSoilData() {
   // getting address where we can start storing
-   EEPROM.get(ADDR, eeAddress);
+  EEPROM.get(ADDR, eeAddress);
   if (isnan(eeAddress)) {
     // start storing data info at address 4
     eeAddress = 4;
   }
 
   // getting current count of collected samples
-   EEPROM.get(COUNT_ADDR, count);
+  EEPROM.get(COUNT_ADDR, count);
   if (isnan(count)) {
     count = 0;
   }
@@ -74,14 +87,26 @@ void collectAndStoreSoilData() {
 void retrieveAndSendSoilData() {
   EEPROM.get(ADDR, eeAddress);
   EEPROM.get(COUNT_ADDR, count);
-  Serial.println("RETRIEVED DATA");
+
+  // let rover know in advance the data count
+  Serial1.write(count);
 
   for (int i=0; i<count; i++) {
-    soil_data retrieved_data;
-    EEPROM.get(eeAddress+(i*sizeof(soil_data)), retrieved_data);
-    // TODO: send via serial over bluetooth
+    EEPROM.get(eeAddress+(i*sizeof(soil_data)), outputData.data);
+    sendSoilData();
   }
 
   // reset the count back to 0
   EEPROM.put(COUNT_ADDR, 0);
+}
+
+void sendSoilData () {
+  for (byte n = 0; n < 6; n++) {
+     BTData[n] = outputData.BTLine[n];
+   }
+   
+  for (byte n = 0; n < 6; n++) {
+      Serial.print("Sending:   "); Serial.println(BTData[n]);
+      Serial1.write(BTData[n]);
+   }
 }
