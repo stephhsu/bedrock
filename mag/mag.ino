@@ -76,17 +76,17 @@ void loop(void)
   compass.getEvent(&compass_event);
 
   float Xm_off, Ym_off, Zm_off, Xm_cal, Ym_cal, Zm_cal;
-  Xm_off = compass_event.magnetic.x*(100000.0/1090.0) + 173.709879; //X-axis combined bias (Non calibrated data - bias)
-  Ym_off = compass_event.magnetic.y*(100000.0/1090.0) + 1683.932284; //Y-axis combined bias (Default: substracting bias)
-  Zm_off = compass_event.magnetic.z*(100000.0/1090.0 ) - 859.845243; //Z-axis combined bias
+  Xm_off = compass_event.magnetic.x*(100000.0/1090.0) - 757.046265; //X-axis combined bias (Non calibrated data - bias)
+  Ym_off = compass_event.magnetic.y*(100000.0/1090.0) + 2194.651668; //Y-axis combined bias (Default: substracting bias)
+  Zm_off = compass_event.magnetic.z*(100000.0/1090.0 ) - 2441.668186; //Z-axis combined bias
   
-  Xm_cal =  0.37959*Xm_off + 0.004076*Ym_off + 0.005455*Zm_off; //X-axis correction for combined scale factors (Default: positive factors)
-  Ym_cal =  0.004076*Xm_off + 0.042996*Ym_off + 0.007544*Zm_off; //Y-axis correction for combined scale factors
-  Zm_cal =  0.005455*Xm_off + 0.007544*Ym_off + 0.042674*Zm_off; //Z-axis correction for combined scale factors
+  Xm_cal =  0.037155*Xm_off - 0.002887*Ym_off + 0.000007*Zm_off; //X-axis correction for combined scale factors (Default: positive factors)
+  Ym_cal =  -0.002887*Xm_off + 0.041444*Ym_off + 0.002247*Zm_off; //Y-axis correction for combined scale factors
+  Zm_cal =  0.000007*Xm_off + 0.002247*Ym_off + 0.036391*Zm_off; //Z-axis correction for combined scale factors
  
-  Serial.print("X: "); Serial.print(Xm_cal); Serial.print("  ");
-  Serial.print("Y: "); Serial.print(Ym_cal); Serial.print("  ");
-  Serial.print("Z: "); Serial.print(Zm_cal); Serial.print("  ");Serial.println("uT");
+//  Serial.print("X: "); Serial.print(Xm_cal); Serial.print("  ");
+//  Serial.print("Y: "); Serial.print(Ym_cal); Serial.print("  ");
+//  Serial.print("Z: "); Serial.print(Zm_cal); Serial.print("  ");Serial.println("uT");
  
   // Hold the module so that Z is pointing 'up' and you can measure the heading with x&y
   // Calculate heading when the magnetometer is level, then correct for signs of axis.
@@ -107,9 +107,17 @@ void loop(void)
     heading -= 2*PI;
    
   // Convert radians to degrees for readability.
-  float headingDegrees = heading * 180/M_PI; 
+  float headingDegrees = (heading) * 180/M_PI; 
+  headingDegrees += 70;
+  // Correct for when signs are reversed.
+  if(headingDegrees < 0)
+    headingDegrees += 360;
+    
+  // Check for wrap due to addition of declination.
+  if(headingDegrees > 360)
+    headingDegrees -= 360;
   
   Serial.print("Heading (degrees): "); Serial.println(headingDegrees);
   
-  delay(500);
+  delay(1000);
 }
