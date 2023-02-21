@@ -3,14 +3,24 @@
 #include <math.h>
 //#include <NeoHWSerial.h>
 #include <NMEAGPS.h>
-#include <Servo.h>
 #include <SoftwareSerial.h>
-#include <TinyGPS++.h>
 #include "waypoint.h"
 
 // setup motor controllers (driving)
+// motor a connections
+int enA = 9;
 int motor1pin1 = 8;
 int motor1pin2 = 7;
+// motor b connections
+int enB = 3;
+int motor2pin1 = 5;
+int motor2pin2 = 4;
+
+// compass navigation
+Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345);
+sensors_event_t compass_event;
+int heading_error;                // signed (+/-) difference between target and current
+#define HEADING_TOLERANCE 5       // error tolerance in degrees
 
 // gps navigation
 static const uint32_t GPSBaud = 9600;
@@ -19,31 +29,44 @@ gps_fix fix;
 double dist_to_target, course_to_target;
 int course_change_needed;
 
-// setup waypoints
-#define NUM_OF_WAYPOINTS 2
+// waypoints
+#define NUM_OF_WAYPOINTS 1
 int current_waypoint = -1;
 NeoGPS::Location_t waypoints[NUM_OF_WAYPOINTS] = {{404381311L, -38196229L}}; // add waypoints to this array
-// ex:
-//{
-//              { 123456789L, -987654321 },
-//              { 123456789L, -987654321 }
-//};
 
 // constants for speeds
 #define STOP 0
 #define NORMAL_SPEED 255
 int speed = NORMAL_SPEED;
 
+static const int RXPin = 4, TXPin = 3;
+SoftwareSerial ss(RXPin, TXPin);
+
 void setup() {
   Serial.begin(9600); // connect serial
   
-  // motor drivers (drive & steering)
-  pinMode(motor1pin1, OUTPUT);
-  pinMode(motor1pin2, OUTPUT);
-  pinMode(9, OUTPUT);
+  // set motor drivers control pins to outputs
+	pinMode(enA, OUTPUT);
+	pinMode(enB, OUTPUT);
+	pinMode(motor1pin1, OUTPUT);
+	pinMode(motor1pin2, OUTPUT);
+	pinMode(motor2pin1, OUTPUT);
+	pinMode(motor2pin2, OUTPUT);
+	
+	// initial state: turn off motors
+	digitalWrite(motor1pin1, LOW);
+	digitalWrite(motor1pin2, LOW);
+	digitalWrite(motor2pin1, LOW);
+	digitalWrite(motor2pin2, LOW);
+
+  // compass
+  if(!compass.begin()) {
+    Serial.println("COMPASS ERROR");
+    while(1);
+  }
 
   // gps
-  Serial1.begin(GPSBaud);
+  Serial1.begin(GPSBaud); // this could be serial 1 instead of ss
 
   // setup for going to first waypoint
   nextWaypoint();
@@ -51,11 +74,11 @@ void setup() {
 
 void loop() {
   // process info from GPS
-  while (gps.available(Serial1)){
+  while (gps.available(Serial1)){ // this could be serial 1 instead of ss
     fix = gps.read();
 
     if (fix.valid.location) {
-      processGPS();
+      processGPSAndCompass();
     } else {
       Serial.println( F("Waiting for GPS fix...") );
     }
@@ -63,6 +86,7 @@ void loop() {
     // within 1 meter of destination
     if (dist_to_target < 0.001) {
       nextWaypoint();
+      processGPSAndCompass();
     }
 
     move();
@@ -70,44 +94,122 @@ void loop() {
 }
 
 /* update distance and course to target, course change */
-void processGPS() {
+void processGPSAndCompass() {
+  // using the neo library's functions
   dist_to_target = fix.location.DistanceKm(waypoints[current_waypoint]);
   course_to_target = fix.location.BearingToDegrees(waypoints[current_waypoint]);
-  course_change_needed = (int)(360 + course_to_target - fix.heading()) % 360;
+  int current_heading = readCompass();
+  course_change_needed = (int)(360 + course_to_target - current_heading) % 360;
+
+  // to help with debugging
   Serial.print("lat: "); Serial.println(fix.latitude());
   Serial.print("long: "); Serial.println(fix.longitude());
   Serial.print("heading: "); Serial.println(fix.heading());
   Serial.print("dist_to_target: "); Serial.println(dist_to_target);
   Serial.print("course_to_target: "); Serial.println(course_to_target);
+  Serial.print("current heading: "); Serial.println(current_heading);
   Serial.print("course_change_needed: "); Serial.println(course_change_needed);
 }
 
+/* returns the heading from the compass (rover's heading) */
+int readCompass() {
+  compass.getEvent(&compass_event);
+
+  // compass calibration
+  float Xm_off, Ym_off, Zm_off, Xm_cal, Ym_cal, Zm_cal;
+  Xm_off = compass_event.magnetic.x*(100000.0/1090.0) - 757.046265; //X-axis combined bias (Non calibrated data - bias)
+  Ym_off = compass_event.magnetic.y*(100000.0/1090.0) + 2194.651668; //Y-axis combined bias (Default: substracting bias)
+  Zm_off = compass_event.magnetic.z*(100000.0/1090.0 ) - 2441.668186; //Z-axis combined bias
+  
+  Xm_cal =  0.037155*Xm_off - 0.002887*Ym_off + 0.000007*Zm_off; //X-axis correction for combined scale factors (Default: positive factors)
+  Ym_cal =  -0.002887*Xm_off + 0.041444*Ym_off + 0.002247*Zm_off; //Y-axis correction for combined scale factors
+  Zm_cal =  0.000007*Xm_off + 0.002247*Ym_off + 0.036391*Zm_off; //Z-axis correction for combined scale factors
+  
+  // heading calculation
+  float heading_rads = atan2(Ym_cal, Xm_cal);
+
+  // WATERLOO: Magnetic Declination: -9° 29' NEGATIVE (WEST)
+  // 1 degreee = 0.0174532925 radians
+  #define DECLINATION 0.157
+  heading_rads += DECLINATION;
+
+  // correct for when signs are reversed.
+  if (heading_rads < 0)
+    heading_rads += 2*PI;
+    
+  // check for wrap due to addition of declination.
+  if (heading_rads > 2*PI)
+    heading_rads -= 2*PI;
+   
+  // convert radians to degrees for readability.
+  float heading_degs = (heading_rads) * 180/M_PI; 
+  heading_degs += 70; // compass random offset - change if needed
+
+  if (heading_degs < 0)
+    heading_degs += 360;
+    
+  if (heading_degs > 360)
+    heading_degs -= 360;
+
+  return static_cast<int>(heading_degs);
+}
+
 void move() {  
-  if ((course_change_needed >= 315) && (course_change_needed < 45)) {
+  // this code only accounts for going staight and turning and going directly backwards
+  // TODO: account for if way point is between 195 to 270 and 90 to 165 degrees
+  if ((course_change_needed >= 345) && (course_change_needed < 15)) {
     // forward
-    Serial.println("forwards");
-    analogWrite(9, speed); //ENA pin
+    analogWrite(enA, 255);
+	  analogWrite(enB, 255);
     digitalWrite(motor1pin1, HIGH);
     digitalWrite(motor1pin2, LOW);
-  } else if ((course_change_needed < 225) && (course_change_needed >= 135)) {
-  // backwards
-    Serial.println("backwards");
-    analogWrite(9, speed); //ENA pin
+    digitalWrite(motor2pin1, HIGH);
+    digitalWrite(motor2pin2, LOW);
+  } else if ((course_change_needed < 90) && (course_change_needed >= 15)) { 
+    // turn right
+    analogWrite(enA, 255); // might need to invert
+	  analogWrite(enB, 125);
+    digitalWrite(motor1pin1, HIGH);
+    digitalWrite(motor1pin2, LOW);
+    digitalWrite(motor2pin1, HIGH);
+    digitalWrite(motor2pin2, LOW);
+
+  } else if ((course_change_needed < 345) && (course_change_needed >= 270)) {
+    // turn left
+    analogWrite(enA, 125); // might need to invert
+	  analogWrite(enB, 255);
+    digitalWrite(motor1pin1, HIGH);
+    digitalWrite(motor1pin2, LOW);
+    digitalWrite(motor2pin1, HIGH);
+    digitalWrite(motor2pin2, LOW);
+
+  } else if ((course_change_needed < 195) && (course_change_needed >= 165)) {
+    // backwards
+    analogWrite(enA, 255);
+	  analogWrite(enB, 255);
     digitalWrite(motor1pin1, LOW);
     digitalWrite(motor1pin2, HIGH);
+    digitalWrite(motor2pin1, LOW);
+    digitalWrite(motor2pin2, HIGH);
   } else {
-    Serial.println("neither");
+    // turn off motors
+    digitalWrite(motor1pin1, LOW); 
     digitalWrite(motor1pin2, LOW);
-    digitalWrite(motor1pin1, LOW);
+    digitalWrite(motor2pin1, LOW);
+    digitalWrite(motor2pin2, LOW);
   }
 }
 
+// makes the next waypoint the current waypoint 
 void nextWaypoint() {
   current_waypoint++;
 
   if (current_waypoint >= NUM_OF_WAYPOINTS) {
     Serial.println("Last waypoint reached");
+    // turn off motors
+    digitalWrite(motor1pin1, LOW); 
     digitalWrite(motor1pin2, LOW);
-    digitalWrite(motor1pin1, LOW);
+    digitalWrite(motor2pin1, LOW);
+    digitalWrite(motor2pin2, LOW);
   }
 }
