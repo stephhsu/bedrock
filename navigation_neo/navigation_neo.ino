@@ -1,7 +1,6 @@
 #include <Adafruit_HMC5883_U.h>
 #include <Adafruit_Sensor.h>
 #include <math.h>
-//#include <NeoHWSerial.h>
 #include <NMEAGPS.h>
 #include <SoftwareSerial.h>
 #include "waypoint.h"
@@ -32,7 +31,7 @@ int course_change_needed;
 // waypoints
 #define NUM_OF_WAYPOINTS 1
 int current_waypoint = -1;
-NeoGPS::Location_t waypoints[NUM_OF_WAYPOINTS] = {{404381311L, -38196229L}}; // add waypoints to this array
+NeoGPS::Location_t waypoints[NUM_OF_WAYPOINTS] = {{434725128L, -805448082L}}; // add waypoints to this array - maybe this should be a decimal instead?
 
 // constants for speeds
 #define STOP 0
@@ -109,6 +108,8 @@ void processGPSAndCompass() {
   Serial.print("course_to_target: "); Serial.println(course_to_target);
   Serial.print("current heading: "); Serial.println(current_heading);
   Serial.print("course_change_needed: "); Serial.println(course_change_needed);
+
+  delay(5000);
 }
 
 /* returns the heading from the compass (rover's heading) */
@@ -143,7 +144,7 @@ int readCompass() {
    
   // convert radians to degrees for readability.
   float heading_degs = (heading_rads) * 180/M_PI; 
-  heading_degs += 70; // compass random offset - change if needed
+  heading_degs -= 20; // compass random offset - change if needed
 
   if (heading_degs < 0)
     heading_degs += 360;
@@ -156,46 +157,41 @@ int readCompass() {
 
 void move() {  
   // this code only accounts for going staight and turning and going directly backwards
-  // TODO: account for if way point is between 195 to 270 and 90 to 165 degrees
   if ((course_change_needed >= 345) && (course_change_needed < 15)) {
     // forward
-    analogWrite(enA, 255);
-	  analogWrite(enB, 255);
-    digitalWrite(motor1pin1, HIGH);
-    digitalWrite(motor1pin2, LOW);
-    digitalWrite(motor2pin1, HIGH);
-    digitalWrite(motor2pin2, LOW);
-  } else if ((course_change_needed < 90) && (course_change_needed >= 15)) { 
+    Serial.println("forward");
+    analogWrite(enA, 100);
+	  analogWrite(enB, 100);
+    digitalWrite(motor1pin1, LOW);
+    digitalWrite(motor1pin2, HIGH);
+    digitalWrite(motor2pin1, LOW);
+    digitalWrite(motor2pin2, HIGH);
+  } else if ((course_change_needed < 165) && (course_change_needed >= 15)) { 
     // turn right
+    Serial.println("right");
     analogWrite(enA, 255); // might need to invert
-	  analogWrite(enB, 125);
-    digitalWrite(motor1pin1, HIGH);
-    digitalWrite(motor1pin2, LOW);
-    digitalWrite(motor2pin1, HIGH);
-    digitalWrite(motor2pin2, LOW);
-
-  } else if ((course_change_needed < 345) && (course_change_needed >= 270)) {
+	  analogWrite(enB, 80);
+    digitalWrite(motor1pin1, LOW);
+    digitalWrite(motor1pin2, HIGH);
+    digitalWrite(motor2pin1, LOW);
+    digitalWrite(motor2pin2, HIGH);
+  } else if ((course_change_needed < 345) && (course_change_needed >= 195)) {
     // turn left
-    analogWrite(enA, 125); // might need to invert
-	  analogWrite(enB, 255);
-    digitalWrite(motor1pin1, HIGH);
-    digitalWrite(motor1pin2, LOW);
-    digitalWrite(motor2pin1, HIGH);
-    digitalWrite(motor2pin2, LOW);
-
-  } else if ((course_change_needed < 195) && (course_change_needed >= 165)) {
-    // backwards
-    analogWrite(enA, 255);
+    Serial.println("left");
+    analogWrite(enA, 80); // might need to invert
 	  analogWrite(enB, 255);
     digitalWrite(motor1pin1, LOW);
     digitalWrite(motor1pin2, HIGH);
     digitalWrite(motor2pin1, LOW);
     digitalWrite(motor2pin2, HIGH);
-  } else {
-    // turn off motors
-    digitalWrite(motor1pin1, LOW); 
+  } else if ((course_change_needed < 195) && (course_change_needed >= 165)) {
+    // backwards
+    Serial.println("backward");
+    analogWrite(enA, 100);
+	  analogWrite(enB, 100);
+    digitalWrite(motor1pin1, HIGH);
     digitalWrite(motor1pin2, LOW);
-    digitalWrite(motor2pin1, LOW);
+    digitalWrite(motor2pin1, HIGH);
     digitalWrite(motor2pin2, LOW);
   }
 }
