@@ -2,10 +2,6 @@
 #include <RTClib.h>
 #include "soil_data.h"
 
-/* Phase 2 TODO:
- * - research if it is possible to power off
- */
-
 #define ADDR 0
 #define COUNT_ADDR 2
 
@@ -21,7 +17,7 @@ int lastHour = -1;
 
 void setup() {
   // open serial port, set the baud rate to 9600 bps
-  Serial.begin(9600);
+  Serial.begin(38400);  // might be 9600
   Serial.setTimeout(10);
   delay(1000);
 
@@ -46,9 +42,7 @@ void loop() {
   // data incoming from bluetooth module
   if (Serial1.available()) {
     c = Serial1.read();
-    if (c == 'm') {
-      // send response back
-      //Serial1.write("hello!");
+    if (c == 'h') {
       retrieveAndSendSoilData();
     }
   }
