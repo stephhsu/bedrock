@@ -81,17 +81,15 @@ void collectAndStoreSoilDataFromSensor() {
      return;
   }
   
-  EEPROM.get(0, eeAddress);
+  EEPROM.get(ADDR, eeAddress);
   if (isnan(eeAddress)) {
     // start storing data info at address 4
     eeAddress = 4;
   }
   
-  EEPROM.get(ADDR, eeAddress);
-  
   for (int i=0; i<count; i++) {
     // double check this logic
-    EEPROM.put(eeAddress+(count*sizeof(soil_data)), inputData.data);
+    EEPROM.put(eeAddress+(i*sizeof(soil_data)), inputData.data);
   }
 
   EEPROM.put(COUNT_ADDR, totalCount+count);
