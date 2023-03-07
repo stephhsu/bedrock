@@ -227,7 +227,10 @@ void sendDataToNodeMcu(byte j) {
     }
   }
 
+  // updates the address to where the sent data left off
+  EEPROM.put(ADDR, eeAddress+(sensors_data_count[j]*sizeof(outputToBT)));
+  
   //nodemcuSerial.write(sensor_ids[j]);
-    Serial.print("Done sending data for sensor: ");Serial.println(sensor_ids[j]);
-    delay(500);
+  Serial.print("Done sending data for sensor: ");Serial.println(sensor_ids[j]);
+  delay(500);
 }
