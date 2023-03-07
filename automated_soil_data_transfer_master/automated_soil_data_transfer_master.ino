@@ -1,6 +1,15 @@
 #include "Timer.h"                     //http://github.com/JChristensen/Timer
 #include <EEPROM.h>
+#include "SerialComs.h"
+#include "SoftwareSerial.h"
+#include <SoftwareSerial.h>
 
+// var for nodemcu connection
+const int RX_pin = 10;
+const int TX_pin = 11;
+SoftwareSerial nodemcuSerial(RX_pin, TX_pin); // RX, TX
+
+// var for BT data transfer
 #define STATE  11 //hc05 state to d11
 #define KEY    12 //hc-05 key(soldered) to d12
 #define EN     13 //hc-05 EN to pin 13
@@ -17,6 +26,7 @@ int currentFunctionStep = 0;
 
 String ATResponse;
 
+// soil data
 struct soil_data {
   uint32_t unix_timestamp;
   int moisture_value;
@@ -54,10 +64,16 @@ void setup() {
   while(!Serial){} //wait for serial
   Serial.println("Serial ready!");
 
+  //Init nodemcu serial
+  nodemcuSerial.begin(9600);
+  while(!nodemcuSerial) {} // wait for nodemcu serial
+  Serial.println("Nodemcu ready!")
+
   //Begin BT
   Serial1.begin(38400);
   while(!Serial1){} //Wait for BT serial
   Serial.println("Bluetooth ready!");
+
 
   for (byte i = 0; i < 2; i++) {
     countReceived = false;
@@ -123,6 +139,10 @@ void setup() {
 
 void loop() {
   t.update(); 
+  // main loop functions should be here
+  // waitForRoverStart()
+  // get data from BT
+  // waitForSendDataToNodeMcu() // includes sending data
 }
 
 void sendAT(String Command){
@@ -212,6 +232,22 @@ void receiveSoilDataCount() {
   }
 }
 
+// functions for nodemcu
+void waitForRoverStart() {
+  
+}
+
+void waitForSendDataToNodeMcu() {
+  while (!nodemcuSerial.available()) {} // do nothing until we get a command from nodemcu
+  char command = nodemcuSerial.read();
+  Serial.println("Node command received");
+  if (command = 's') {
+    for (byte i = 0; i < 2; i++) {
+      sendSoilData(i);        
+    }
+  }
+}
+
 void sendDataToNodeMcu(byte j) {
   for (int i = 0; i < sensors_data_count[j]; i++) {
     outputToBT toDisplay;
@@ -223,11 +259,11 @@ void sendDataToNodeMcu(byte j) {
      
     for (byte n = 0; n < 6; n++) {
       Serial.print("Sending:   "); Serial.println(BTData[n]);
-      //nodemcuSerial.write(BTData[n]);
+      nodemcuSerial.write(BTData[n]);
     }
   }
 
-  //nodemcuSerial.write(sensor_ids[j]);
-    Serial.print("Done sending data for sensor: ");Serial.println(sensor_ids[j]);
-    delay(500);
+  nodemcuSerial.write(sensor_ids[j]);
+  Serial.print("Done sending data for sensor: ");Serial.println(sensor_ids[j]);
+  delay(500);
 }
