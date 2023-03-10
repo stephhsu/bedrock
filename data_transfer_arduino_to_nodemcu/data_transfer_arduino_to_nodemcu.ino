@@ -3,7 +3,7 @@
 #include <SoftwareSerial.h>
 
 const int RX_pin = 10;
-const int TX_pin = 11;
+const int TX_pin = 9;
 
 SoftwareSerial nodemcuSerial(RX_pin, TX_pin); // RX, TX
 
@@ -38,8 +38,10 @@ void setup() {
 bool dataSent = false;
 
 void loop() {
+  Serial.println("checking for command");
   if (nodemcuSerial.available()) {
     char command = nodemcuSerial.read();
+    Serial.println(command);
     Serial.println("Node command received");
     if (command = 's') {
       for (byte i = 0; i < 2; i++) {

@@ -6,7 +6,7 @@
 
 const int RX_pin = 13; // for ESP8266 use 13  D7 on NodeMCU/wemos-d1-esp8266
 const int TX_pin = 12; // for ESP8266 use 12  D6  on NodeMCU/wemos-d1-esp8266
-SoftwareSerial soilSensorBoard(RX_pin, TX_pin); // RX, TX
+SoftwareSerial soilSensorBoard(D7, D6); // RX, TX
 
 // struct definitions
 struct soil_data {
@@ -53,29 +53,25 @@ void loop() {
   if (dataReceived == false) {
     soilSensorBoard.write('s');
     while (!soilSensorBoard.available()) {
-      Serial.println("Waiting for data");
-      delay (5000);
+      Serial.println("No data from arduino yet");
+      delay(5000);
     }
     for (byte i = 0; i < 2; i++) {
       receiveData(i);
     }
-    dataReceived = true;
     displayData();
     String json1 = formatSensorData(0);
     String json2 = formatSensorData(1);
     Serial.println(".");
     Serial.println(".");
     Serial.println(".");
-    sendDataToAPI();
+    // sendDataToAPI();
   }
   delay(5000);
 }
 
 void receiveData(byte i) {
-  Serial.println("receiving data");
   if (soilSensorBoard.available() < 6) {
-      // error
-      Serial.println("no data");
       return;
     }
     for (byte n = 0; n < 6; n++) {
@@ -100,6 +96,7 @@ void displayData() {
     Serial.print(" ");
     Serial.println(soilSensorIds[i]);
   }
+  dataReceived = true;
 }
 
 void sendDataToAPI() {
