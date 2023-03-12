@@ -46,7 +46,7 @@ int eeAddress;
 int orginalAddress;
 int inc;
 boolean countReceived = false;
-boolean shouldConnectToSoilSensor = true;
+boolean shouldConnectToSoilSensor = false;
 int sensors_data_count[NUM_SENSORS] = {0 ,0};
 int currentSensor = 0; // update when navigation code signals
 
@@ -74,6 +74,10 @@ void setup() {
   nodemcuSerial.begin(9600);
   while(!nodemcuSerial) {} // wait for nodemcu serial
   Serial.println("Nodemcu ready!");
+
+  Serial2.begin(38400);
+  while(!Serial2){} //Wait for Serial2 (communication with navigation board)
+  Serial.println("Communication with navigation board ready!");
   
   disconnectFromSoilSensor();
 
@@ -84,16 +88,19 @@ void setup() {
 }
 
 void loop() {
-  // bluetooth logic
   if (!isDataReceived) {
+    if (Serial2.available()){
+      char c = Serial2.read();
+      if (c == 'y') {
+        // received a signal from the navigation board
+        shouldConnectToSoilSensor = true;
+      }
+    }
+
     if (shouldConnectToSoilSensor) {
       connectToSoilSensor(bt_addrs[currentSensor]);
       shouldConnectToSoilSensor = false;
     }
-  
-    // TODO: signal from navigation code
-    // update the currentSensor index
-    // connectToSoilSensor = true;
   
     // sends a signal to soil sensor
     char sig = 'm';
@@ -110,14 +117,16 @@ void loop() {
       }
       countReceived = false;
       disconnectFromSoilSensor();
-  
-      shouldConnectToSoilSensor = true;
       currentSensor++;
+      
+      // send a signal back to move on
+      Serial2.write('y');
     }
 
-    if (currentSensor ==  NUM_SENSORS) {
+    if (currentSensor ==  NUM_SENSORS) { // done receiving data
        isDataReceived = true;
     }
+    
   } else if (!isReadyToSendData) {
     for (byte i = 0; i < 2; i++) {
       sendDataToNodeMcu(i);        
