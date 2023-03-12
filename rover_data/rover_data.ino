@@ -8,7 +8,7 @@ const int RX_pin = 10;
 const int TX_pin = 9;
 SoftwareSerial nodemcuSerial(RX_pin, TX_pin); // RX, TX
 
-// var for BT data transfer
+// var for AT automation
 #define STATE  11 //hc05 state to d11
 #define KEY    12 //hc-05 key(soldered) to d12
 #define EN     13 //hc-05 EN to pin 13
@@ -20,16 +20,13 @@ SoftwareSerial nodemcuSerial(RX_pin, TX_pin); // RX, TX
 Timer t;
 int dynamicEvent;
 
-int eeAddress;
-int orginalAddress;
-int totalCount = 0;
-char c = ' ';
-boolean newData = false;
-int count = -1;
-int inc;
-boolean countReceived = false;
+boolean SETTINGHC05MODE = false;
+int KEY_MODE;
+int currentFunctionStep = 0;
 
-// soil data
+String ATResponse;
+
+// var for BT data transfer
 struct soil_data {
   uint32_t unix_timestamp;
   int moisture_value;
@@ -43,18 +40,17 @@ union outputToBT {
 outputToBT inputData;
 byte BTData[6];
 
-boolean SETTINGHC05MODE = false;
-int KEY_MODE;
-int currentFunctionStep = 0;
-boolean shouldConnectToSoilSensor = true;
-
-String ATResponse;
-
 String bt_addrs[NUM_SENSORS] = {"98da,50,0112af", "98d3,31,403fb0"};
 char sensor_ids[NUM_SENSORS] = {'a', 'b'};
+int eeAddress;
+int orginalAddress;
+int inc;
+boolean countReceived = false;
+boolean shouldConnectToSoilSensor = true;
 int sensors_data_count[NUM_SENSORS] = {0 ,0};
 int currentSensor = 0; // update when navigation code signals
 
+// booleans for system flow
 boolean isStartCommandReceived = false;
 boolean isDataReceived = false;
 boolean isReadyToSendData = false;
@@ -102,10 +98,10 @@ void loop() {
     // sends a signal to soil sensor
     char sig = 'm';
     Serial1.write(sig); // on the sensor side, it will know to send data
-    // sensor should send the number of soil data in advance
+    
     delay(1000);
     Serial.println("data requested");
-    receiveSoilDataCount();
+    receiveSoilDataCount(); // sensor should send the number of soil data in advance
   
     if (countReceived) {
       inc = 0;
@@ -155,7 +151,6 @@ void receiveSoilData() {
      Serial.print("<Receiving BTLine ... ");
      Serial.println(inputData.BTLine[n]);
    }
-   newData = true;
 
   EEPROM.get(ADDR, eeAddress);
   if (isnan(eeAddress) || eeAddress == 0) {
@@ -164,14 +159,12 @@ void receiveSoilData() {
   }
 
   if (currentSensor == 0) {
-    orginalAddress = eeAddress;
+    orginalAddress = eeAddress; // used later when sending data to nodemcu
   }
   Serial.print("eeAddress: "); Serial.println(eeAddress);
-   
-//  EEPROM.put(eeAddress+(inc*sizeof(soil_data)), inputData.data);
+  
   EEPROM.put(eeAddress, inputData.data);
   EEPROM.put(ADDR, eeAddress+sizeof(outputToBT));
-  Serial.print("storing data at eeAddress: "); Serial.println(eeAddress+(inc*sizeof(soil_data)));
   inc++;
 }
 
@@ -188,6 +181,7 @@ void connectToSoilSensor(String addr) {
   sendAT("AT+BIND=" + addr);
   sendAT("AT+LINK=" + addr); // linking the devices - will end up in communication mode
 
+  // set HV-05 to communication mode
   KEY_MODE = LOW;   
   SETTINGHC05MODE= true;
   setHc05Mode(); 
@@ -260,7 +254,6 @@ void sendDataToNodeMcu(byte j) {
       eeAddress = orginalAddress;
     } else {
       EEPROM.get(ADDR, eeAddress);
-      Serial.print("eeAddress: "); Serial.println(eeAddress);
     }
     
     Serial.print("getting data from eeAddress: "); Serial.println(eeAddress+(i*sizeof(outputToBT)));
@@ -282,5 +275,6 @@ void sendDataToNodeMcu(byte j) {
   
   nodemcuSerial.write(sensor_ids[j]);
   Serial.print("Done sending data for sensor: ");Serial.println(sensor_ids[j]);
+  
   delay(5000);
 }
