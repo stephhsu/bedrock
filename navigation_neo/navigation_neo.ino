@@ -30,8 +30,10 @@ int course_change_needed;
 
 // waypoints
 #define NUM_OF_WAYPOINTS 1
+#define NUM_OF_SENSORS 2
 int current_waypoint = -1;
 NeoGPS::Location_t waypoints[NUM_OF_WAYPOINTS] = {{434725128L, -805448082L}}; // add waypoints to this array - maybe this should be a decimal instead?
+NeoGPS::Location_t collection_waypoints[NUM_OF_SENSORS] = {{434725128L, -805448082L}, {434725128L, -805448082L}}; // where we will stop to collect data
 
 // constants for speeds
 #define STOP 0
@@ -87,13 +89,21 @@ void loop() {
 
     // within 1 meter of destination
     if (dist_to_target < 0.001) {
-      stop_rover();
-      Serial2.write('y');
 
-      // wait for a signal from the data board before moving on
-      while (!Serial2.available()) {
-        Serial.println("No signal for data board yet");
-        delay(5000);
+      // only stop and wait for data if the current waypoint is a collection point
+      for (int i = 0; i < NUM_OF_SENSORS; i++) {
+        if (waypoints[current_waypoint] == collection_waypoints[i]) {
+          stop_rover();
+          Serial2.write('y');
+    
+          // wait for a signal from the data board before moving on
+          while (!Serial2.available()) {
+            Serial.println("No signal for data board yet");
+            delay(5000);
+          }
+
+          break;
+        }
       }
       
       nextWaypoint();
