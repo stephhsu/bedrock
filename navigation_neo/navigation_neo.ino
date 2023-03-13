@@ -65,7 +65,10 @@ void setup() {
   }
 
   // gps
-  Serial1.begin(GPSBaud); // this could be serial 1 instead of ss
+  Serial1.begin(GPSBaud);
+
+  // communication with data board
+  Serial2.begin(38400);
 
   // setup for going to first waypoint
   nextWaypoint();
@@ -73,7 +76,7 @@ void setup() {
 
 void loop() {
   // process info from GPS
-  while (gps.available(Serial1)){ // this could be serial 1 instead of ss
+  while (gps.available(Serial1)){
     fix = gps.read();
 
     if (fix.valid.location) {
@@ -84,11 +87,20 @@ void loop() {
 
     // within 1 meter of destination
     if (dist_to_target < 0.001) {
+      stop_rover();
+      Serial2.write('y');
+
+      // wait for a signal from the data board before moving on
+      while (!Serial2.available()) {
+        Serial.println("No signal for data board yet");
+        delay(5000);
+      }
+      
       nextWaypoint();
       processGPSAndCompass();
     }
 
-    move();
+    move_rover();
   }
 }
 
@@ -155,7 +167,7 @@ int readCompass() {
   return static_cast<int>(heading_degs);
 }
 
-void move() {  
+void move_rover() {  
   // this code only accounts for going staight and turning and going directly backwards
   if ((course_change_needed >= 345) && (course_change_needed < 15)) {
     // forward
@@ -196,6 +208,13 @@ void move() {
   }
 }
 
+void stop_rover() {
+  digitalWrite(motor1pin1, LOW); 
+  digitalWrite(motor1pin2, LOW);
+  digitalWrite(motor2pin1, LOW);
+  digitalWrite(motor2pin2, LOW);
+}
+
 // makes the next waypoint the current waypoint 
 void nextWaypoint() {
   current_waypoint++;
@@ -203,9 +222,6 @@ void nextWaypoint() {
   if (current_waypoint >= NUM_OF_WAYPOINTS) {
     Serial.println("Last waypoint reached");
     // turn off motors
-    digitalWrite(motor1pin1, LOW); 
-    digitalWrite(motor1pin2, LOW);
-    digitalWrite(motor2pin1, LOW);
-    digitalWrite(motor2pin2, LOW);
+    stop();
   }
 }
