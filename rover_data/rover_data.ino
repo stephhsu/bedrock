@@ -47,6 +47,7 @@ int orginalAddress;
 int inc;
 boolean countReceived = false;
 boolean shouldConnectToSoilSensor = false;
+boolean shouldWaitForSignal = true;
 int sensors_data_count[NUM_SENSORS] = {0 ,0};
 int currentSensor = 0; // update when navigation code signals
 
@@ -89,11 +90,12 @@ void setup() {
 
 void loop() {
   if (!isDataReceived) {
-    if (Serial2.available()){
+    if (shouldWaitForSignal && Serial2.available()){
       char c = Serial2.read();
       if (c == 'y') {
         // received a signal from the navigation board
         shouldConnectToSoilSensor = true;
+        shouldWaitForSignal = false;
       }
     }
 
@@ -119,8 +121,9 @@ void loop() {
       disconnectFromSoilSensor();
       currentSensor++;
       
-      // send a signal back to move on
+      // send a signal back to move on to next sensor
       Serial2.write('y');
+      shouldWaitForSignal = true;
     }
 
     if (currentSensor ==  NUM_SENSORS) { // done receiving data
