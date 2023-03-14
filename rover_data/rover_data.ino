@@ -19,7 +19,6 @@ SoftwareSerial nodemcuSerial(RX_pin, TX_pin); // RX, TX
 
 Timer t;
 int dynamicEvent;
-
 boolean SETTINGHC05MODE = false;
 int KEY_MODE;
 int currentFunctionStep = 0;
@@ -42,14 +41,14 @@ byte BTData[6];
 
 String bt_addrs[NUM_SENSORS] = {"98da,50,0112af", "98d3,31,403fb0"};
 char sensor_ids[NUM_SENSORS] = {'a', 'b'};
-int eeAddress;
-int orginalAddress;
-int inc;
 boolean countReceived = false;
 boolean shouldConnectToSoilSensor = false;
 boolean shouldWaitForSignal = true;
 int sensors_data_count[NUM_SENSORS] = {0 ,0};
 int currentSensor = 0; // update when navigation code signals
+int eeAddress;
+int orginalAddress;
+int inc;
 
 // booleans for system flow
 boolean isStartCommandReceived = false;
@@ -89,7 +88,10 @@ void setup() {
 }
 
 void loop() {
-  if (!isDataReceived) {
+  if (!isStartCommandReceived && !isDataReceived && !isReadyToSendData) {
+    // start command code
+    // remember set to flag to true
+  } else if (isStartCommandReceived && !isDataReceived && !isReadyToSendData) {
     if (shouldWaitForSignal && Serial2.available()){
       char c = Serial2.read();
       if (c == 'y') {
@@ -130,7 +132,7 @@ void loop() {
        isDataReceived = true;
     }
     
-  } else if (!isReadyToSendData) {
+  } else if (isStartCommandReceived && isDataReceived && !isReadyToSendData) {
     for (byte i = 0; i < 2; i++) {
       sendDataToNodeMcu(i);        
     }
