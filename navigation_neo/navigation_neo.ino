@@ -25,8 +25,9 @@ int heading_error;                // signed (+/-) difference between target and 
 static const uint32_t GPSBaud = 9600;
 NMEAGPS gps;
 gps_fix fix;
-double dist_to_target, course_to_target;
+double dist_to_target, course_to_target, dist_to_col;
 int course_change_needed;
+boolean isStartCommandReceived = false;
 
 // waypoints
 #define NUM_OF_WAYPOINTS 1
@@ -78,39 +79,49 @@ void setup() {
 
 void loop() {
   // process info from GPS
-  while (gps.available(Serial1)){
-    fix = gps.read();
-
-    if (fix.valid.location) {
-      processGPSAndCompass();
-    } else {
-      Serial.println( F("Waiting for GPS fix...") );
-    }
-
-    // within 1 meter of destination
-    if (dist_to_target < 0.001) {
-
-      // only stop and wait for data if the current waypoint is a collection point
-      for (int i = 0; i < NUM_OF_SENSORS; i++) {
-        if (waypoints[current_waypoint] == collection_waypoints[i]) {
-          stop_rover();
-          Serial2.write('y');
-    
-          // wait for a signal from the data board before moving on
-          while (!Serial2.available()) {
-            Serial.println("No signal for data board yet");
-            delay(5000);
-          }
-
-          break;
-        }
+  if (!isStartCommandReceived) {
+    if (Serial2.available()) {
+      char c = Serial2.read();
+      if (c == 't') {
+        isStartCommandReceived = true;
       }
-      
-      nextWaypoint();
-      processGPSAndCompass();
     }
-
-    move_rover();
+  } else {
+    while (gps.available(Serial1)){
+      fix = gps.read();
+  
+      if (fix.valid.location) {
+        processGPSAndCompass();
+      } else {
+        Serial.println( F("Waiting for GPS fix...") );
+      }
+  
+      // within 1 meter of destination
+      if (dist_to_target < 0.001) {
+  
+        // only stop and wait for data if the current waypoint is a collection point
+        for (int i = 0; i < NUM_OF_SENSORS; i++) {
+          dist_to_col = fix.location.DistanceKm(collection_waypoints[i]);
+          if (dist_to_col < 0.001) {
+            stop_rover();
+            Serial2.write('y');
+      
+            // wait for a signal from the data board before moving on
+            while (!Serial2.available()) {
+              Serial.println("No signal for data board yet");
+              delay(5000);
+            }
+  
+            break;
+          }
+        }
+        
+        nextWaypoint();
+        processGPSAndCompass();
+      }
+  
+      move_rover();
+    }
   }
 }
 
@@ -232,6 +243,6 @@ void nextWaypoint() {
   if (current_waypoint >= NUM_OF_WAYPOINTS) {
     Serial.println("Last waypoint reached");
     // turn off motors
-    stop();
+    stop_rover();
   }
 }
