@@ -89,8 +89,16 @@ void setup() {
 
 void loop() {
   if (!isStartCommandReceived && !isDataReceived && !isReadyToSendData) {
-    // start command code
-    // remember set to flag to true
+    if (nodemcuSerial.available()){
+      char c = nodemcuSerial.read();
+      Serial.print("Received ");Serial.println(c);
+      if (c == 't'){
+        Serial.println("Start command received by data board");
+        isStartCommandReceived = true;
+        // TODO: send signal to nav board
+      }
+    }
+    
   } else if (isStartCommandReceived && !isDataReceived && !isReadyToSendData) {
     if (shouldWaitForSignal && Serial2.available()){
       char c = Serial2.read();
