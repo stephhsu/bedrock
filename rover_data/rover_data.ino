@@ -95,7 +95,8 @@ void loop() {
       if (c == 't'){
         Serial.println("Start command received by data board");
         isStartCommandReceived = true;
-        // TODO: send signal to nav board
+        Serial2.write('t');
+        
       }
     }
     
