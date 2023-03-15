@@ -14,6 +14,14 @@ int motor1pin2 = 7;
 int enB = 3;
 int motor2pin1 = 5;
 int motor2pin2 = 4;
+// motor c connections
+int enC = 6;
+int motor3pin1 = 2;
+int motor3pin2 = 13;
+// motor d connections
+int enD = 10;
+int motor4pin1 = 12;
+int motor4pin2 = 11;
 
 // compass navigation
 Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345);
@@ -33,7 +41,7 @@ boolean isStartCommandReceived = false;
 #define NUM_OF_WAYPOINTS 1
 #define NUM_OF_SENSORS 2
 int current_waypoint = -1;
-NeoGPS::Location_t waypoints[NUM_OF_WAYPOINTS] = {{434725128L, -805448082L}}; // add waypoints to this array - maybe this should be a decimal instead?
+NeoGPS::Location_t waypoints[NUM_OF_WAYPOINTS] = {{43473562L, -80547736L}}; // add waypoints to this array - maybe this should be a decimal instead? 43.473562, -80.547736
 NeoGPS::Location_t collection_waypoints[NUM_OF_SENSORS] = {{434725128L, -805448082L}, {434725128L, -805448082L}}; // where we will stop to collect data
 
 // constants for speeds
@@ -54,12 +62,22 @@ void setup() {
 	pinMode(motor1pin2, OUTPUT);
 	pinMode(motor2pin1, OUTPUT);
 	pinMode(motor2pin2, OUTPUT);
+  pinMode(enC, OUTPUT);
+  pinMode(enD, OUTPUT);
+  pinMode(motor3pin1, OUTPUT);
+  pinMode(motor3pin2, OUTPUT);
+  pinMode(motor4pin1, OUTPUT);
+  pinMode(motor4pin2, OUTPUT);
 	
 	// initial state: turn off motors
 	digitalWrite(motor1pin1, LOW);
 	digitalWrite(motor1pin2, LOW);
 	digitalWrite(motor2pin1, LOW);
 	digitalWrite(motor2pin2, LOW);
+  digitalWrite(motor3pin1, LOW);
+  digitalWrite(motor3pin2, LOW);
+  digitalWrite(motor4pin1, LOW);
+  digitalWrite(motor4pin2, LOW);
 
   // compass
   if(!compass.begin()) {
@@ -189,21 +207,30 @@ int readCompass() {
 }
 
 void move_rover() {  
+  Serial.println("move rover");
   // this code only accounts for going staight and turning and going directly backwards
   if ((course_change_needed >= 345) && (course_change_needed < 15)) {
     // forward
     Serial.println("forward");
-    analogWrite(enA, 100);
-	  analogWrite(enB, 100);
-    digitalWrite(motor1pin1, LOW);
-    digitalWrite(motor1pin2, HIGH);
-    digitalWrite(motor2pin1, LOW);
-    digitalWrite(motor2pin2, HIGH);
+    analogWrite(enA, 200);
+    analogWrite(enB, 200);
+    analogWrite(enC, 200);
+    analogWrite(enD, 200);
+    digitalWrite(motor1pin1, HIGH);
+    digitalWrite(motor1pin2, LOW);
+    digitalWrite(motor2pin1, HIGH);
+    digitalWrite(motor2pin2, LOW);
+    digitalWrite(motor3pin1, HIGH);
+    digitalWrite(motor3pin2, LOW);
+    digitalWrite(motor4pin1, LOW);
+    digitalWrite(motor4pin2, HIGH);
   } else if ((course_change_needed < 165) && (course_change_needed >= 15)) { 
     // turn right
     Serial.println("right");
-    analogWrite(enA, 255); // might need to invert
-	  analogWrite(enB, 80);
+    analogWrite(enA, 255);
+    analogWrite(enB, 80);
+    analogWrite(enC, 80);
+    analogWrite(enD, 255);
     digitalWrite(motor1pin1, LOW);
     digitalWrite(motor1pin2, HIGH);
     digitalWrite(motor2pin1, LOW);
@@ -211,8 +238,10 @@ void move_rover() {
   } else if ((course_change_needed < 345) && (course_change_needed >= 195)) {
     // turn left
     Serial.println("left");
-    analogWrite(enA, 80); // might need to invert
-	  analogWrite(enB, 255);
+    analogWrite(enA, 80);
+    analogWrite(enB, 255);
+    analogWrite(enC, 255);
+    analogWrite(enD, 80);
     digitalWrite(motor1pin1, LOW);
     digitalWrite(motor1pin2, HIGH);
     digitalWrite(motor2pin1, LOW);
@@ -220,12 +249,20 @@ void move_rover() {
   } else if ((course_change_needed < 195) && (course_change_needed >= 165)) {
     // backwards
     Serial.println("backward");
-    analogWrite(enA, 100);
-	  analogWrite(enB, 100);
-    digitalWrite(motor1pin1, HIGH);
-    digitalWrite(motor1pin2, LOW);
-    digitalWrite(motor2pin1, HIGH);
-    digitalWrite(motor2pin2, LOW);
+    analogWrite(enA, 200);
+	  analogWrite(enB, 200);
+    analogWrite(enC, 200);
+    analogWrite(enD, 200);
+    digitalWrite(motor1pin1, LOW);
+    digitalWrite(motor1pin2, HIGH);
+    digitalWrite(motor2pin1, LOW);
+    digitalWrite(motor2pin2, HIGH);
+    digitalWrite(motor3pin1, LOW);
+    digitalWrite(motor3pin2, HIGH);
+    digitalWrite(motor4pin1, HIGH);
+    digitalWrite(motor4pin2, LOW);
+  } else {
+    Serial.println("none of the above sadge: " + course_change_needed);
   }
 }
 
@@ -234,6 +271,10 @@ void stop_rover() {
   digitalWrite(motor1pin2, LOW);
   digitalWrite(motor2pin1, LOW);
   digitalWrite(motor2pin2, LOW);
+  digitalWrite(motor3pin1, LOW); 
+  digitalWrite(motor3pin2, LOW);
+  digitalWrite(motor4pin1, LOW);
+  digitalWrite(motor4pin2, LOW);
 }
 
 // makes the next waypoint the current waypoint 
