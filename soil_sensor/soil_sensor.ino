@@ -12,13 +12,13 @@ struct soil_data {
   int moisture_value;
 };
 
-union outputToBT {
+union outputToBt {
   soil_data data;
   byte BTLine[6];
 };
 
 outputToBt outputData;
-byte btData[6];
+byte BTData[6];
 char c = ' ';
 
 RTC_DS1307 rtc;
@@ -26,7 +26,7 @@ int eeAddress;
 int count;
 
 int inc = 0;
-int lastHour = -1;
+//int lastHour = -1;
 
 void setup() {
   // open serial port, set the baud rate to 9600 bps
@@ -44,19 +44,18 @@ void setup() {
   for (int i = 0 ; i < EEPROM.length() ; i++) {
     EEPROM.write(i, 0);
   }
-  for (int i = 0; i < 1; i++) {
-    collectAndStoreSoilData();
-  }
+  
+  collectAndStoreSoilData();
 }
 
 void loop() {
-  DateTime now = rtc.now();
-  if (now.hour() != lastHour) {
-    lastHour = now.hour();
-    if (now.hour() % 3 == 0) { // set to every 3 hours. change to 1 hour for demo
-      collectAndStoreSoilData();
-    }
-  }
+//  DateTime now = rtc.now();
+//  if (now.hour() != lastHour) {
+//    lastHour = now.hour();
+//    if (now.hour() % 1 == 0) { // set to every 3 hours. change to 1 hour for demo
+//      collectAndStoreSoilData();
+//    }
+//  }
 
   // data incoming from bluetooth module
   if (BTSerial.available()) {  
@@ -100,10 +99,10 @@ void collectAndStoreSoilData() {
   }
   
   int soilMoistureValue = analogRead(A0);
-  DateTime now = rtc.now(); // grabbing the current unix timestamp from rtc module
-  uint32_t nowUnix = now.unixtime();
+//  DateTime now = rtc.now(); // grabbing the current unix timestamp from rtc module
+//  uint32_t nowUnix = now.unixtime();
   
-  soil_data collected_data = {nowUnix, soilMoistureValue};
+  soil_data collected_data = {1678992207, soilMoistureValue};
   inc++;
 
   // store collected data in the EEPROM
