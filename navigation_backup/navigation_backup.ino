@@ -22,8 +22,8 @@ int motor4pin2 = 11;
 static const int RXPin = 4, TXPin = 3;
 SoftwareSerial ss(RXPin, TXPin);
 
-int delays[9] = {0,0,0,0,0,0,0,0,0}; // fill in later
-String actions[9] = {"waitStart", "forwards", "wait", "forwards", "wait", "forwards", "left", "forwards", "left", "forwards"}; // fill in later
+int delays[10] = {10000,0,15000,0,10000,3000,10000,3000,35000,0}; // fill in later
+String actions[10] = {"forwards", "wait", "forwards", "wait", "forwards", "left", "forwards", "left", "forwards", "reset"}; // fill in later
 int inc = 0;
 boolean isStartCommandReceived = false;
 
@@ -46,14 +46,7 @@ void setup() {
   pinMode(motor4pin2, OUTPUT);
   
   // initial state: turn off motors
-  digitalWrite(motor1pin1, LOW);
-  digitalWrite(motor1pin2, LOW);
-  digitalWrite(motor2pin1, LOW);
-  digitalWrite(motor2pin2, LOW);
-  digitalWrite(motor3pin1, LOW);
-  digitalWrite(motor3pin2, LOW);
-  digitalWrite(motor4pin1, LOW);
-  digitalWrite(motor4pin2, LOW);
+  stop_rover();
 
   // communication with data board
   Serial2.begin(38400);
@@ -106,7 +99,9 @@ void loop() {
       digitalWrite(motor3pin2, LOW);
       digitalWrite(motor4pin1, LOW);
       digitalWrite(motor4pin2, HIGH);
-      
+    } else if (actions[inc] == "reset") {
+      stop_rover();
+      isStartCommandReceived = false;
     } else {
       stop_rover();
     }
