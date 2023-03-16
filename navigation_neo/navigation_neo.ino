@@ -1,9 +1,7 @@
 #include <Adafruit_HMC5883_U.h>
 #include <Adafruit_Sensor.h>
-#include <math.h>
 #include <NMEAGPS.h>
 #include <SoftwareSerial.h>
-#include "waypoint.h"
 
 // setup motor controllers (driving)
 // motor a connections
