@@ -39,7 +39,7 @@ boolean isStartCommandReceived = false;
 #define NUM_OF_WAYPOINTS 1
 #define NUM_OF_SENSORS 2
 int current_waypoint = -1;
-NeoGPS::Location_t waypoints[NUM_OF_WAYPOINTS] = {{43474079L, -80548428L}}; // add waypoints to this array - maybe this should be a decimal instead? 43.474079, -80.548428
+NeoGPS::Location_t waypoints[NUM_OF_WAYPOINTS] = {{43473382L, -80547700L}}; // add waypoints to this array 43.473382, -80.547700
 NeoGPS::Location_t collection_waypoints[NUM_OF_SENSORS] = {{434725128L, -805448082L}, {434725128L, -805448082L}}; // where we will stop to collect data
 
 // constants for speeds
@@ -133,7 +133,7 @@ void loop() {
           processGPSAndCompass();
         }
 
-        move_rover();
+        //move_rover();
         
       } else {
         Serial.println( F("Waiting for GPS fix...") );
@@ -197,7 +197,7 @@ int readCompass() {
    
   // convert radians to degrees for readability.
   float heading_degs = (heading_rads) * 180/PI; 
-  heading_degs += 75; // compass random offset - change if needed
+  //heading_degs += 75; // compass random offset - change if needed
 
   if (heading_degs < 0)
     heading_degs += 360;

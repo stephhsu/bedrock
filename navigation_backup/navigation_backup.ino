@@ -23,8 +23,9 @@ static const int RXPin = 4, TXPin = 3;
 SoftwareSerial ss(RXPin, TXPin);
 
 int delays[9] = {0,0,0,0,0,0,0,0,0}; // fill in later
-String actions[9] = {"forwards", "wait", "forwards", "wait", "forwards", "left", "forwards", "left", "forwards"}; // fill in later
+String actions[9] = {"waitStart", "forwards", "wait", "forwards", "wait", "forwards", "left", "forwards", "left", "forwards"}; // fill in later
 int inc = 0;
+boolean isStartCommandReceived = false;
 
 
 void setup() {
@@ -59,51 +60,60 @@ void setup() {
 }
 
 void loop() {
-  if (actions[inc] == "forwards") {
-    Serial.println("forward");
-    analogWrite(enA, 200);
-    analogWrite(enB, 200);
-    analogWrite(enC, 200);
-    analogWrite(enD, 200);
-    digitalWrite(motor1pin1, HIGH);
-    digitalWrite(motor1pin2, LOW);
-    digitalWrite(motor2pin1, HIGH);
-    digitalWrite(motor2pin2, LOW);
-    digitalWrite(motor3pin1, HIGH);
-    digitalWrite(motor3pin2, LOW);
-    digitalWrite(motor4pin1, LOW);
-    digitalWrite(motor4pin2, HIGH);
-  } else if (actions[inc] == "wait") {
-    stop_rover();
-    Serial2.write('y');
-    
-    // wait for a signal from the data board before moving on
-    while (!Serial2.available()) {
-      Serial.println("No signal for data board yet");
-      delay(5000);
+  if (!isStartCommandReceived) {
+    if (Serial2.available()) {
+      char c = Serial2.read();
+      if (c == 't') {
+        isStartCommandReceived = true;
+      }
     }
-    
-  } else if (actions[inc] == "left") {
-    Serial.println("left");
-    analogWrite(enA, 255);
-    analogWrite(enB, 80);
-    analogWrite(enC, 80);
-    analogWrite(enD, 255);
-    digitalWrite(motor1pin1, HIGH);
-    digitalWrite(motor1pin2, LOW);
-    digitalWrite(motor2pin1, HIGH);
-    digitalWrite(motor2pin2, LOW);
-    digitalWrite(motor3pin1, HIGH);
-    digitalWrite(motor3pin2, LOW);
-    digitalWrite(motor4pin1, LOW);
-    digitalWrite(motor4pin2, HIGH);
-    
-  } else {
-    stop_rover();
-  }
-
-  delay(delays[inc]);
-  inc++;
+  } else { 
+    if (actions[inc] == "forwards") {
+      Serial.println("forward");
+      analogWrite(enA, 200);
+      analogWrite(enB, 200);
+      analogWrite(enC, 200);
+      analogWrite(enD, 200);
+      digitalWrite(motor1pin1, HIGH);
+      digitalWrite(motor1pin2, LOW);
+      digitalWrite(motor2pin1, HIGH);
+      digitalWrite(motor2pin2, LOW);
+      digitalWrite(motor3pin1, HIGH);
+      digitalWrite(motor3pin2, LOW);
+      digitalWrite(motor4pin1, LOW);
+      digitalWrite(motor4pin2, HIGH);
+    } else if (actions[inc] == "wait") {
+      stop_rover();
+      Serial2.write('y');
+      
+      // wait for a signal from the data board before moving on
+      while (!Serial2.available()) {
+        Serial.println("No signal for data board yet");
+        delay(5000);
+      }
+      
+    } else if (actions[inc] == "left") {
+      Serial.println("left");
+      analogWrite(enA, 255);
+      analogWrite(enB, 80);
+      analogWrite(enC, 80);
+      analogWrite(enD, 255);
+      digitalWrite(motor1pin1, HIGH);
+      digitalWrite(motor1pin2, LOW);
+      digitalWrite(motor2pin1, HIGH);
+      digitalWrite(motor2pin2, LOW);
+      digitalWrite(motor3pin1, HIGH);
+      digitalWrite(motor3pin2, LOW);
+      digitalWrite(motor4pin1, LOW);
+      digitalWrite(motor4pin2, HIGH);
+      
+    } else {
+      stop_rover();
+    }
+  
+    delay(delays[inc]);
+    inc++;
+  }  
 }
 
 void stop_rover() {
