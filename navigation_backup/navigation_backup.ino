@@ -76,14 +76,16 @@ void loop() {
       digitalWrite(motor4pin1, LOW);
       digitalWrite(motor4pin2, HIGH);
     } else if (actions[inc] == "wait") {
+      Serial.println("wait");
       stop_rover();
-      Serial2.write('y');
-      
-      // wait for a signal from the data board before moving on
-      while (!Serial2.available()) {
-        Serial.println("No signal for data board yet");
-        delay(5000);
-      }
+//      Serial2.write('y');
+//      
+//      // wait for a signal from the data board before moving on
+//      while (!Serial2.available()) {
+//        Serial.println("No signal for data board yet");
+//        delay(5000);
+//      }
+      delay(20000);
       
     } else if (actions[inc] == "left") {
       Serial.println("left");
@@ -100,14 +102,19 @@ void loop() {
       digitalWrite(motor4pin1, LOW);
       digitalWrite(motor4pin2, HIGH);
     } else if (actions[inc] == "reset") {
+      Serial2.write('c');
+      Serial.println("reset");
       stop_rover();
       isStartCommandReceived = false;
+      inc = 0;
     } else {
+      Serial.println("non");
       stop_rover();
     }
   
     delay(delays[inc]);
     inc++;
+    Serial.println(inc);
   }  
 }
 
