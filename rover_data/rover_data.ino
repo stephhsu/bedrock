@@ -111,40 +111,45 @@ void loop() {
     }
 
     if (shouldConnectToSoilSensor) {
-      connectToSoilSensor(bt_addrs[currentSensor]);
+      //connectToSoilSensor(bt_addrs[currentSensor]);
       shouldConnectToSoilSensor = false;
     }
   
     // sends a signal to soil sensor
-    char sig = 'm';
-    Serial1.write(sig); // on the sensor side, it will know to send data
+    //char sig = 'm';
+    //Serial1.write(sig); // on the sensor side, it will know to send data
     
     delay(1000);
     Serial.println("data requested");
-    receiveSoilDataCount(); // sensor should send the number of soil data in advance
+    delay(20000);
+//    receiveSoilDataCount(); // sensor should send the number of soil data in advance
   
-    if (countReceived) {
-      inc = 0;
-      while (inc < sensors_data_count[currentSensor]) {
-        receiveSoilData();
-      }
-      countReceived = false;
-      disconnectFromSoilSensor();
-      currentSensor++;
-      
-      // send a signal back to move on to next sensor
-      Serial2.write('y');
-      shouldWaitForSignal = true;
-    }
+//    if (countReceived) {
+//      inc = 0;
+//      while (inc < sensors_data_count[currentSensor]) {
+//        receiveSoilData();
+//      }
+//      countReceived = false;
+//      disconnectFromSoilSensor();
+//      currentSensor++;
+//      
+//      // send a signal back to move on to next sensor
+//      Serial2.write('y');
+//      shouldWaitForSignal = true;
+//    }
+
+    Serial2.write('y');
+    shouldWaitForSignal = true;
 
     if (currentSensor ==  NUM_SENSORS) { // done receiving data
        isDataReceived = true;
     }
     
   } else if (isStartCommandReceived && isDataReceived && !isReadyToSendData) {
-    for (byte i = 0; i < 2; i++) {
-      sendDataToNodeMcu(i);        
-    }
+//    for (byte i = 0; i < 2; i++) {
+//      sendDataToNodeMcu(i);        
+//    }
+    nodemcuSerial.write('y');
     isReadyToSendData = true;
     resetSystem();
        
