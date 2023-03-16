@@ -41,13 +41,12 @@ boolean isStartCommandReceived = false;
 #define NUM_OF_WAYPOINTS 1
 #define NUM_OF_SENSORS 2
 int current_waypoint = -1;
-NeoGPS::Location_t waypoints[NUM_OF_WAYPOINTS] = {{43473562L, -80547736L}}; // add waypoints to this array - maybe this should be a decimal instead? 43.473562, -80.547736
+NeoGPS::Location_t waypoints[NUM_OF_WAYPOINTS] = {{43474079L, -80548428L}}; // add waypoints to this array - maybe this should be a decimal instead? 43.474079, -80.548428
 NeoGPS::Location_t collection_waypoints[NUM_OF_SENSORS] = {{434725128L, -805448082L}, {434725128L, -805448082L}}; // where we will stop to collect data
 
 // constants for speeds
-#define STOP 0
 #define NORMAL_SPEED 255
-int speed = NORMAL_SPEED;
+#define TURNL_SPEED 85
 
 static const int RXPin = 4, TXPin = 3;
 SoftwareSerial ss(RXPin, TXPin);
@@ -110,35 +109,38 @@ void loop() {
   
       if (fix.valid.location) {
         processGPSAndCompass();
+        
+        // within 1 meter of destination
+        if (dist_to_target < 0.001) {
+        
+          // only stop and wait for data if the current waypoint is a collection point
+          for (int i = 0; i < NUM_OF_SENSORS; i++) {
+            dist_to_col = fix.location.DistanceKm(collection_waypoints[i]);
+            if (dist_to_col < 0.001) {
+              stop_rover();
+              Serial2.write('y');
+              
+              // wait for a signal from the data board before moving on
+              while (!Serial2.available()) {
+                Serial.println("No signal for data board yet");
+                delay(5000);
+              }
+              
+              break;
+            }
+          }
+          
+          nextWaypoint();
+          processGPSAndCompass();
+        }
+
+        move_rover();
+        
       } else {
         Serial.println( F("Waiting for GPS fix...") );
       }
   
-      // within 1 meter of destination
-      if (dist_to_target < 0.001) {
-  
-        // only stop and wait for data if the current waypoint is a collection point
-        for (int i = 0; i < NUM_OF_SENSORS; i++) {
-          dist_to_col = fix.location.DistanceKm(collection_waypoints[i]);
-          if (dist_to_col < 0.001) {
-            stop_rover();
-            Serial2.write('y');
-      
-            // wait for a signal from the data board before moving on
-            while (!Serial2.available()) {
-              Serial.println("No signal for data board yet");
-              delay(5000);
-            }
-  
-            break;
-          }
-        }
-        
-        nextWaypoint();
-        processGPSAndCompass();
-      }
-  
-      move_rover();
+
     }
   }
 }
@@ -147,15 +149,16 @@ void loop() {
 void processGPSAndCompass() {
   // using the neo library's functions
   dist_to_target = fix.location.DistanceKm(waypoints[current_waypoint]);
-  course_to_target = fix.location.BearingToDegrees(waypoints[current_waypoint]);
+  course_to_target = NeoGPS::Location_t::BearingToDegrees( fix.location, waypoints[current_waypoint] );
+  //course_to_target = fix.location.BearingToDegrees(waypoints[current_waypoint]);
   int current_heading = readCompass();
-  course_change_needed = (int)(360 + course_to_target - current_heading) % 360;
+  course_change_needed = abs(course_to_target - current_heading);
 
   // to help with debugging
   Serial.print("lat: "); Serial.println(fix.latitude());
   Serial.print("long: "); Serial.println(fix.longitude());
   Serial.print("heading: "); Serial.println(fix.heading());
-  Serial.print("dist_to_target: "); Serial.println(dist_to_target);
+  Serial.print("dist_to_target (in km): "); Serial.println(dist_to_target);
   Serial.print("course_to_target: "); Serial.println(course_to_target);
   Serial.print("current heading: "); Serial.println(current_heading);
   Serial.print("course_change_needed: "); Serial.println(course_change_needed);
@@ -194,8 +197,8 @@ int readCompass() {
     heading_rads -= 2*PI;
    
   // convert radians to degrees for readability.
-  float heading_degs = (heading_rads) * 180/M_PI; 
-  heading_degs -= 20; // compass random offset - change if needed
+  float heading_degs = (heading_rads) * 180/PI; 
+  heading_degs += 75; // compass random offset - change if needed
 
   if (heading_degs < 0)
     heading_degs += 360;
@@ -209,7 +212,7 @@ int readCompass() {
 void move_rover() {  
   Serial.println("move rover");
   // this code only accounts for going staight and turning and going directly backwards
-  if ((course_change_needed >= 345) && (course_change_needed < 15)) {
+  if ((course_change_needed >= 345) || (course_change_needed < 15)) {
     // forward
     Serial.println("forward");
     analogWrite(enA, 200);
@@ -224,45 +227,38 @@ void move_rover() {
     digitalWrite(motor3pin2, LOW);
     digitalWrite(motor4pin1, LOW);
     digitalWrite(motor4pin2, HIGH);
-  } else if ((course_change_needed < 165) && (course_change_needed >= 15)) { 
-    // turn right
-    Serial.println("right");
+  } else if ((course_change_needed < 180) && (course_change_needed >= 15)) { 
+    // turn left
+    Serial.println("left");
     analogWrite(enA, 255);
     analogWrite(enB, 80);
     analogWrite(enC, 80);
     analogWrite(enD, 255);
-    digitalWrite(motor1pin1, LOW);
-    digitalWrite(motor1pin2, HIGH);
-    digitalWrite(motor2pin1, LOW);
-    digitalWrite(motor2pin2, HIGH);
-  } else if ((course_change_needed < 345) && (course_change_needed >= 195)) {
-    // turn left
-    Serial.println("left");
+    digitalWrite(motor1pin1, HIGH);
+    digitalWrite(motor1pin2, LOW);
+    digitalWrite(motor2pin1, HIGH);
+    digitalWrite(motor2pin2, LOW);
+    digitalWrite(motor3pin1, HIGH);
+    digitalWrite(motor3pin2, LOW);
+    digitalWrite(motor4pin1, LOW);
+    digitalWrite(motor4pin2, HIGH);
+  } else if ((course_change_needed < 345) && (course_change_needed >= 180)) {
+    // turn right
+    Serial.println("right");
     analogWrite(enA, 80);
     analogWrite(enB, 255);
     analogWrite(enC, 255);
     analogWrite(enD, 80);
-    digitalWrite(motor1pin1, LOW);
-    digitalWrite(motor1pin2, HIGH);
-    digitalWrite(motor2pin1, LOW);
-    digitalWrite(motor2pin2, HIGH);
-  } else if ((course_change_needed < 195) && (course_change_needed >= 165)) {
-    // backwards
-    Serial.println("backward");
-    analogWrite(enA, 200);
-	  analogWrite(enB, 200);
-    analogWrite(enC, 200);
-    analogWrite(enD, 200);
-    digitalWrite(motor1pin1, LOW);
-    digitalWrite(motor1pin2, HIGH);
-    digitalWrite(motor2pin1, LOW);
-    digitalWrite(motor2pin2, HIGH);
-    digitalWrite(motor3pin1, LOW);
-    digitalWrite(motor3pin2, HIGH);
-    digitalWrite(motor4pin1, HIGH);
-    digitalWrite(motor4pin2, LOW);
+    digitalWrite(motor1pin1, HIGH);
+    digitalWrite(motor1pin2, LOW);
+    digitalWrite(motor2pin1, HIGH);
+    digitalWrite(motor2pin2, LOW);
+    digitalWrite(motor3pin1, HIGH);
+    digitalWrite(motor3pin2, LOW);
+    digitalWrite(motor4pin1, LOW);
+    digitalWrite(motor4pin2, HIGH);
   } else {
-    Serial.println("none of the above sadge: " + course_change_needed);
+    Serial.print("none of the above sadge: "); Serial.println(course_change_needed);
   }
 }
 
