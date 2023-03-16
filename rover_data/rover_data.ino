@@ -145,7 +145,9 @@ void loop() {
     for (byte i = 0; i < 2; i++) {
       sendDataToNodeMcu(i);        
     }
-    isReadyToSendData = true;    
+    isReadyToSendData = true;
+    resetSystem();
+       
   }
 }
 
@@ -300,4 +302,18 @@ void sendDataToNodeMcu(byte j) {
   Serial.print("Done sending data for sensor: ");Serial.println(sensor_ids[j]);
   
   delay(5000);
+}
+
+void resetSystem() {
+  Serial.println("Clearing EEPROM!");
+  for (int i = 0 ; i < EEPROM.length() ; i++) {
+    EEPROM.write(i, 0);
+  }
+
+  isStartCommandReceived = false;
+  isDataReceived = false;
+  isReadyToSendData = false;
+  countReceived = false;
+  shouldConnectToSoilSensor = false;
+  shouldWaitForSignal = true;
 }
