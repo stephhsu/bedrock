@@ -43,8 +43,9 @@ NeoGPS::Location_t waypoints[NUM_OF_WAYPOINTS] = {{43474079L, -80548428L}}; // a
 NeoGPS::Location_t collection_waypoints[NUM_OF_SENSORS] = {{434725128L, -805448082L}, {434725128L, -805448082L}}; // where we will stop to collect data
 
 // constants for speeds
-#define NORMAL_SPEED 255
-#define TURNL_SPEED 85
+#define NORMAL_SPEED 200
+#define FAST_TURN_SPEED 255
+#define SLOW_TURN_SPEED 85
 
 static const int RXPin = 4, TXPin = 3;
 SoftwareSerial ss(RXPin, TXPin);
@@ -213,10 +214,10 @@ void move_rover() {
   if ((course_change_needed >= 345) || (course_change_needed < 15)) {
     // forward
     Serial.println("forward");
-    analogWrite(enA, 200);
-    analogWrite(enB, 200);
-    analogWrite(enC, 200);
-    analogWrite(enD, 200);
+    analogWrite(enA, NORMAL_SPEED);
+    analogWrite(enB, NORMAL_SPEED);
+    analogWrite(enC, NORMAL_SPEED);
+    analogWrite(enD, NORMAL_SPEED);
     digitalWrite(motor1pin1, HIGH);
     digitalWrite(motor1pin2, LOW);
     digitalWrite(motor2pin1, HIGH);
@@ -228,10 +229,10 @@ void move_rover() {
   } else if ((course_change_needed < 180) && (course_change_needed >= 15)) { 
     // turn left
     Serial.println("left");
-    analogWrite(enA, 255);
-    analogWrite(enB, 80);
-    analogWrite(enC, 80);
-    analogWrite(enD, 255);
+    analogWrite(enA, FAST_TURN_SPEED);
+    analogWrite(enB, SLOW_TURN_SPEED);
+    analogWrite(enC, SLOW_TURN_SPEED);
+    analogWrite(enD, FAST_TURN_SPEED);
     digitalWrite(motor1pin1, HIGH);
     digitalWrite(motor1pin2, LOW);
     digitalWrite(motor2pin1, HIGH);
@@ -243,10 +244,10 @@ void move_rover() {
   } else if ((course_change_needed < 345) && (course_change_needed >= 180)) {
     // turn right
     Serial.println("right");
-    analogWrite(enA, 80);
-    analogWrite(enB, 255);
-    analogWrite(enC, 255);
-    analogWrite(enD, 80);
+    analogWrite(enA, SLOW_TURN_SPEED);
+    analogWrite(enB, FAST_TURN_SPEED);
+    analogWrite(enC, FAST_TURN_SPEED);
+    analogWrite(enD, SLOW_TURN_SPEED);
     digitalWrite(motor1pin1, HIGH);
     digitalWrite(motor1pin2, LOW);
     digitalWrite(motor2pin1, HIGH);
