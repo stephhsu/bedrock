@@ -88,7 +88,7 @@ void setup() {
 }
 
 void loop() {
-  if (!isStartCommandReceived && !isDataReceived && !isReadyToSendData) {
+  if (!isStartCommandReceived) {
     if (nodemcuSerial.available()){
       char c = nodemcuSerial.read();
       Serial.print("Received ");Serial.println(c);
@@ -99,61 +99,73 @@ void loop() {
         
       }
     }
-    
-  } else if (isStartCommandReceived && !isDataReceived && !isReadyToSendData) {
-    if (shouldWaitForSignal && Serial2.available()){
+  } else {
+    if (Serial2.available()){
       char c = Serial2.read();
-      if (c == 'y') {
-        // received a signal from the navigation board
-        shouldConnectToSoilSensor = true;
-        shouldWaitForSignal = false;
+      Serial.print("Received ");Serial.println(c);
+      if (c == 'c'){
+        Serial.println("Signal received that navigation is over");
+        isStartCommandReceived = false;
+        nodemcuSerial.write('t');
+        
       }
     }
-
-    if (shouldConnectToSoilSensor) {
-      //connectToSoilSensor(bt_addrs[currentSensor]);
-      shouldConnectToSoilSensor = false;
-    }
-  
-    // sends a signal to soil sensor
-    //char sig = 'm';
-    //Serial1.write(sig); // on the sensor side, it will know to send data
-    
-    delay(1000);
-    Serial.println("data requested");
-    delay(20000);
-//    receiveSoilDataCount(); // sensor should send the number of soil data in advance
-  
-//    if (countReceived) {
-//      inc = 0;
-//      while (inc < sensors_data_count[currentSensor]) {
-//        receiveSoilData();
-//      }
-//      countReceived = false;
-//      disconnectFromSoilSensor();
-//      currentSensor++;
-//      
-//      // send a signal back to move on to next sensor
-//      Serial2.write('y');
-//      shouldWaitForSignal = true;
-//    }
-
-    Serial2.write('y');
-    shouldWaitForSignal = true;
-
-    if (currentSensor ==  NUM_SENSORS) { // done receiving data
-       isDataReceived = true;
-    }
-    
-  } else if (isStartCommandReceived && isDataReceived && !isReadyToSendData) {
-//    for (byte i = 0; i < 2; i++) {
-//      sendDataToNodeMcu(i);        
-//    }
-    nodemcuSerial.write('y');
-    isReadyToSendData = true;
-    resetSystem();
-       
   }
+    
+//  } else if (isStartCommandReceived && !isDataReceived && !isReadyToSendData) {
+//    if (shouldWaitForSignal && Serial2.available()){
+//      char c = Serial2.read();
+//      if (c == 'y') {
+//        // received a signal from the navigation board
+//        shouldConnectToSoilSensor = true;
+//        shouldWaitForSignal = false;
+//      }
+//    }
+//
+//    if (shouldConnectToSoilSensor) {
+//      //connectToSoilSensor(bt_addrs[currentSensor]);
+//      shouldConnectToSoilSensor = false;
+//    }
+//  
+//    // sends a signal to soil sensor
+//    //char sig = 'm';
+//    //Serial1.write(sig); // on the sensor side, it will know to send data
+//    
+//    delay(1000);
+//    Serial.println("data requested");
+//    delay(20000);
+////    receiveSoilDataCount(); // sensor should send the number of soil data in advance
+//  
+////    if (countReceived) {
+////      inc = 0;
+////      while (inc < sensors_data_count[currentSensor]) {
+////        receiveSoilData();
+////      }
+////      countReceived = false;
+////      disconnectFromSoilSensor();
+////      currentSensor++;
+////      
+////      // send a signal back to move on to next sensor
+////      Serial2.write('y');
+////      shouldWaitForSignal = true;
+////    }
+//
+////    Serial2.write('y');
+////    shouldWaitForSignal = true;
+//
+//    if (currentSensor ==  NUM_SENSORS) { // done receiving data
+//       isDataReceived = true;
+//    }
+//    
+//  } else if (isStartCommandReceived && isDataReceived && !isReadyToSendData) {
+////    for (byte i = 0; i < 2; i++) {
+////      sendDataToNodeMcu(i);        
+////    }
+//    nodemcuSerial.write('y');
+//    isReadyToSendData = true;
+//    resetSystem();
+//       
+//  }
 }
 
 void receiveSoilDataCount() {
